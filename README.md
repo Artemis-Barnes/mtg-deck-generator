@@ -1,8 +1,6 @@
 # mtg-deck-generator
 Generates a MtG Commander deck based on user input.
 
-Commander deck generator.
-
 What do I want it to do?
 
 1. Ask the user if they have a specific commander in mind.
