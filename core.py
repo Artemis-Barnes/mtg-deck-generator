@@ -113,6 +113,7 @@ def compile_user_choices(theme, commander, color, include, exclude):
         print("\nI will attempt to create a " + color + " " + theme + " deck using " + commander + " as the commander.\n\nI will include the following cards:\n" + "\n".join(include) + "\n\nI will exclude the following cards:\n" + "\n".join(exclude))
     return 1
 
+#Run the program in this order!
 deck_theme_ask = ask_theme()
 commander_ask, identity_ask = ask_commander()
 human_identity_ask = convert_color_identity(identity_ask)
