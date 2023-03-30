@@ -1,107 +1,121 @@
-#This function asks the user for information about the deck they'd like to build.
-#These optioins include:
-#   1. What commander they'd like to use.
-#   2. If no commander is selected, what color identity they'd like to use.
-#   3. If no color identity is picked, then pick a random one and pick a rasonable commander for that random color identity.
-#   4. What cards they'd like to add to their deck.
-#   5. What cards they'd like to exclude from their deck.
-#   6. What theme they'd like to have their deck to have. i.e. creature tribal, control, spellslinger, mill, etc.
+#Logic order:
+    #1. ask deck theme.
+    #2. ask deck commander.
+    #3. ask deck colour identity.
+    #4. ask deck included cards.
+    #5. ask deck excluded cards.
+    #6. compile choices.
 
 import random
-from config import *
+import config
 
-#TODO: Sanitise commander names after being entered.
-#TODO: Add a check to see if the commander can be found in the database.
-def user_options():
-    print("\n\nWelcome to the Magic the Gathering Commander deck generator!")
+commander = config.commander
+color_identity = config.color_identity
+deck_theme = config.deck_theme
+color_identity_dictionary = config.color_identity_dictionary
+included_cards = config.included_cards
+excluded_cards = config.excluded_cards
+valid_commanders = config.valid_commanders
 
-    #This section asks the user to pick a deck theme. If the user types /wut then they are told how to complete this section.
-    #The input is compared against a list of deck themes. If it matches one in the list, the deck_theme will be set to it.
-    #If the deck theme is not on the list, they will be asked to try again.
-    #If the deck theme is random, it will set a random deck theme.
-    #If the deck theme is left blank, the generator will not look for decks of a specific theme.
-    deck_theme_types = ["creature", "control", "mill", "landfall", "token", "voltron", "artifact"]
-    deck_theme = ""
-    while True:
-        try:
-            deck_theme = input("\nWhat theme would you like to make your deck?\nType /wut for instructions.\nType random to make a random theme.\nLeave blank and press enter for no theme.\n").strip()
-            deck_theme.lower()
-            if deck_theme not in deck_theme_types and len(deck_theme) != 0 and deck_theme != "/wut" and deck_theme != "random":
-                raise ValueError
-            if deck_theme == "/wut":
-                deck_theme = input("Here, you can specify what type of themes your deck will have.\nFor now, I will accept one of the following types:\nCreature\nControl\nMill\nLandfall\nToken\nVoltron\nArtifact\nPlease enter a valid type:\n")
-                deck_theme.lower()           
-        except ValueError:
-            print("I'm sorry, that is not a valid deck type. Please try again.")
-            continue
-        if deck_theme == "":
-            break
-        if deck_theme == "random":
-            deck_theme = random.choice(deck_theme_types)
-            break
-        elif deck_theme in deck_theme_types:
-            break
-    if deck_theme == "":
-        print("Okay, I won't try to make this deck a specific theme.")
-    else:
-        print("Okay, I'll make a " + deck_theme + " deck.")
-    
-    #This part asks the user to set a commander.
-    #If none is picked, it will ask for a colour identity.
-    #If no colour identity is picked, it will pick a random one.
-    #If the commander picked is listed in the valid commander dictionary, it will set the correct colour identity
-    #If the commander picked is NOT listed in the valid commander dictionary, it will set a random colour identity.
-    commander = input("Do you have a commander in mind? If so, enter its name. If not, press enter.\n").strip()
-    if not commander:
-        color_identity = input("In that case, do you have a colour identity in mind? If so, enter it (e.g. WUBRG, WUBG, UBG, WR, U). If not, press enter.\nPlease keep your colors in the correct WUBRG order.\n").strip()
-        if not color_identity:
+#Start with some useful functions I made.
+#This one turns a colour identity code into more human readable words:
+def convert_color_identity(c_id):
+    converted_color_identity = []
+    ordered_color_identity = "".join(sorted(c_id, key="WUBRG".index))
+    for i in ordered_color_identity:
+        converted_color_identity.append(config.color_identity_dictionary[i])
+    human_color_identity = ", ".join(converted_color_identity)
+    return human_color_identity.lower()
 
-            #Picks a random set of letters from the string "WUBRG" and makes it the colour identity.
-            #Preserves the order of WUBRG, too. That was a pain to work out.
-            random_range = random.randrange(1, 6)
-            selected_colors = random.sample("WUBRG", random_range)
-            color_identity = "".join(sorted(selected_colors, key="WUBRG".index))
-
-        #Creates a dictionary that associates the letters in WUBRG with their full name.
-
-        #Creates list that is then filled in wth the name of each colour according to its letter in the color_identity.
-        #It uses each letter in the color_identity string as a key, finds its value from the color_identity_dictionary, then appends the value
-        #to the empty converted_color_identity list.
-        converted_color_identity = []
-        for i in color_identity:
-            converted_color_identity.append(color_identity_dictionary[i])
-
-        #Since we can't print a list, we convert it to a string, separating the items on the list by commas.
-        printed_color_identity = ", ".join(converted_color_identity)
-
-        print("All right, I will use " + printed_color_identity + " for your deck.")        
-        
-        #Here I will call the card recommendation engine to find a commander for the right color identity.
-        #For now it will just be a generically selected commander.
-        commander = str("Generic " + printed_color_identity + " commander.")
-
-    #TODO: Use the card recommendation engine to find and set the colour identity of the chosen commander, so I can delete this block:
+#This one will eventually find the colour identity of a commander:
+def get_commander_color_identity(commander): #Replace this with something that actually searches a database, lol.
     if commander in valid_commanders:
-        color_identity = "".join(valid_commanders[commander])
-        converted_color_identity = []
-        for i in color_identity:
-            converted_color_identity.append(color_identity_dictionary[i])
-        printed_color_identity = ", ".join(converted_color_identity)      
-    elif len(color_identity) == 0:
+        selected_colors = valid_commanders[commander]
+        return selected_colors
+    else:
         random_range = random.randrange(1, 6)
         selected_colors = random.sample("WUBRG", random_range)
-        color_identity = "".join(sorted(selected_colors, key="WUBRG".index))
-        converted_color_identity = []
-        for i in color_identity:
-            converted_color_identity.append(color_identity_dictionary[i])
-        printed_color_identity = ", ".join(converted_color_identity)
+        return selected_colors
 
-    if len(deck_theme) != 0:
-        print("Okay, I'll make a " + printed_color_identity + " " + deck_theme + " deck using " + commander + ".")
+#Now we ask users for their inputs, starting with the deck theme:
+def ask_theme():
+    valid_deck_theme = config.valid_deck_theme
+    other_options = ["", "none"]
+    valid_answers = [valid_deck_theme, other_options]
+    print("\nHello, welcome to the Magic the Gathering Commander Deck generator!\nFirst, please type your deck theme and press enter. Type /list for the list of valid deck themes.\nIf you do not want a deck theme, type \"none\" and press enter.\nIf you want a random deck theme, leave it blank and press enter.")
+    while True:
+        deck_theme_ask = input()
+        if any(deck_theme_ask in sublist for sublist in valid_answers):
+            break
+        elif deck_theme_ask == "/list":
+            print("\nHere's a list of valid deck themes:\n" + "\n".join(valid_deck_theme) + "\n\nPlease enter one of the above:")
+            continue
+        else:
+            print("\nI'm sorry, this is not a valid deck theme. Type /list for the list of valid deck themes or try again:")
+            continue
+    if deck_theme_ask == "":
+        deck_theme_ask = random.choice(valid_deck_theme)
+        print ("\nSure thing, I have randomly selected to make a " + deck_theme_ask + " deck.")
+    elif deck_theme_ask in valid_deck_theme:
+        print ("\nSure thing, I will try to create a " + deck_theme_ask + " deck.")
+    elif deck_theme_ask == "none":
+        deck_theme_ask = ""
+        print("\nSure thing, I will not try to use a theme for your deck.")
     else:
-        print("Okay, I'll make a " + printed_color_identity + " deck using " + commander + " with no specific theme.")
+        print("\nWhat? How did this happen?")
+    return deck_theme_ask
 
-# Interacts with the card-engine module to create a deck of cards.
-#def generate_deck(commander, colour_identity, theme):
+#Now we have a deck theme, we can ask for a commander. This will spit out the commander's colour identity too.
+def ask_commander():
+    print("\nWhat commander would you like to use?\nType the commander's name and press enter.\nIf you don't have one in mind, leave blank and press enter.")
+    commander_ask = input()
+    if not commander_ask:
+        print("Since you don't have one in mind, please enter a colour identity in WUBRG format.\nI will select a commander in that colour identity using the theme selected earlier.\nIf you don't have a colour identity in mind, leave it blank and press enter. I will randomly select one.")
+        color_identity_ask = input()
+        if not color_identity_ask:
+            commander_ask = random.choice(list(valid_commanders))
+            color_identity_ask = valid_commanders[commander_ask]
+            print("All right, I will use " + commander_ask + " as your commander.\nIts color identity is " + convert_color_identity(color_identity_ask) + ".")
+            return commander_ask, color_identity_ask
+        else:
+            print("Okay, I will use a " + convert_color_identity(color_identity_ask) + " commander.")
+            print("I have selected Generic " + convert_color_identity(color_identity_ask) + " Commander.")
+            commander_ask = str("Generic " + convert_color_identity(color_identity_ask) + " Commander")
+            return commander_ask, color_identity_ask
+    elif commander_ask in valid_commanders:
+        color_identity_ask = valid_commanders[commander_ask]
+        print("Okay, I will use " + commander_ask + "\nIts color identity is " + convert_color_identity(color_identity_ask) + ".")
+        return commander_ask, color_identity_ask
+    else:
+        color_identity_ask = get_commander_color_identity(commander_ask)
+        print("\nThis commander isn't in my database yet. I'll make up a color identity for it.\nI have decided its color identity is " + convert_color_identity(color_identity_ask) + ".")
+        return commander_ask, color_identity_ask
 
-user_options()
+#Now we need to ask what cards they want to include:
+def ask_include_cards():
+    print("\nWhat cards must be INCLUDED in your deck?\nSeparate entries with a comma and space, e.g. scion of the ur dragon, utvara hellkite, urabrask the hidden\nLeave blank and press enter if none.")
+    included_cards_string = input()
+    included_cards_list = included_cards_string.split(", ")
+    return included_cards_list
+
+#Now we need to ask what cards they want to exclude:
+def ask_exclude_cards():
+    print("\nWhat cards must be EXCLUDED in your deck?\nSeparate entries with a comma and space, e.g. sol ring, the first sliver, karn's temporal sundering\nLeave blank and press enter if none.")
+    excluded_cards_string = input()
+    excluded_cards_list = excluded_cards_string.split(", ")
+    return excluded_cards_list
+
+#Summarise the user's choices.
+def compile_user_choices(theme, commander, color, include, exclude):
+    if not theme:
+        print("\nI will attempt to create a " + color + " deck with no particular theme using " + commander + " as the commander.\n\nI will include the following cards:\n" + "\n".join(include) + "\n\nI will exclude the following cards:\n" + "\n".join(exclude))
+    else:
+        print("\nI will attempt to create a " + color + " " + theme + " deck using " + commander + " as the commander.\n\nI will include the following cards:\n" + "\n".join(include) + "\n\nI will exclude the following cards:\n" + "\n".join(exclude))
+    return 1
+
+deck_theme_ask = ask_theme()
+commander_ask, identity_ask = ask_commander()
+human_identity_ask = convert_color_identity(identity_ask)
+include_ask = ask_include_cards()
+exclude_ask = ask_exclude_cards()
+compile_user_choices(deck_theme_ask, commander_ask, human_identity_ask, include_ask, exclude_ask)
